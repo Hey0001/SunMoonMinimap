@@ -1,8 +1,8 @@
 ## Interface: 16001
 ## Title: SunMoonMinimap
-## Notes: Moves the Forever minimap Sun/Moon around the minimap according to server/local time.
+## Notes: Moves the Sun/Moon icon around the minimap according to server/local time.
 ## Author: AI
-## Version: 1.0.3
+## Version: 1.0.4
 ## SavedVariables: SunMoonMinimapDB
 ## Category: Map & Minimap
 
