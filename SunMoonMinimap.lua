@@ -1,5 +1,5 @@
 -- Sun & Moon Minimap
--- Version 1.0.4
+-- Version 1.0.5
 
 local ADDON_NAME = ...
 local DB
@@ -84,11 +84,11 @@ local function UpdatePosition()
         -- If we are in the upper hemisphere (cosVal > 0, meaning between 18h and 06h via 12h)
         if cosVal > 0 then
             -- Push intermediate hours away from 12h by lowering the flanks (09h / 15h)
-            local upperFactor = 0.50 -- Increase this value if 09h/15h feel too close to 12h
+            local upperFactor = 0.20 -- Increase this value if hours between 06h-12h and 12h-18h feel too close to 12h
             correction = upperFactor * sinVal * cosVal
         else
             -- In the lower hemisphere (cosVal < 0, between 06h and 18h via 00h)
-			local lowerFactor = -0.20 -- Decrease this value (higher in the negatives) to be closer to 00h
+			local lowerFactor = -0.00 -- Decrease this value (higher in the negatives) to be closer to 00h
             correction = lowerFactor * sinVal * cosVal
         end
         
@@ -229,7 +229,7 @@ local function StartTicker()
 end
 
 local function Print(msg)
-    DEFAULT_CHAT_FRAME:AddMessage("|cffFFD100Sun Moon Minimap:|r " .. msg)
+    DEFAULT_CHAT_FRAME:AddMessage("|cffFFD100SMM:|r " .. msg)
 end
 
 local function Command(msg)
@@ -238,59 +238,71 @@ local function Command(msg)
     if    msg == "on" then
         DB.enabled = true
         Apply()
-        Print("> SMM enabled")
+        Print("> |cFF00FF00SMM|r enabled")
     elseif    msg == "off" then
             DB.enabled = false
             if frame then frame:Hide() end
             RestoreBlizzard()
-            Print("> Blizzard's native indicator enabled")
+            Print("> |cff00FFFFBlizzard|r's native indicator enabled")
     elseif  msg == "server" or msg == "serv" or msg == "server time" or msg == "serv time" then
 			DB.serverTime = true
 			UpdatePosition()
-			Print("> Using server time")
+			Print("> Using |cFF00FF00server|r time")
     elseif  msg == "local" or msg == "local time" then
             DB.serverTime = false
             UpdatePosition()
-            Print("> Using local time")
+            Print("> Using |cffFFD100local|r time")
     elseif  msg == "mode" then
         if  DB.horizonMode then
 			DB.horizonMode = false
             UpdatePosition()
-            Print("> Clock (12h) mode enabled (Bottom=06h/18h, Left=09h/21h, Top=12h/00h, Right=15h/03h).")
+            Print("> |cFF00FF00Clock (12h)|r mode enabled (Bottom=06h/18h, Left=09h/21h, Top=12h/00h, Right=15h/03h).")
         else
             DB.horizonMode = true
             UpdatePosition()
-            Print("> Horizon (24h) mode enabled (Left=06h (sunrise), Top=12h, Right=18h (sunset), Bottom=00h).")
+            Print("> |cffFFD100Horizon (24h)|r mode enabled (Left=06h (sunrise), Top=12h, Right=18h (sunset), Bottom=00h).")
         end
-    elseif  msg == "clock" then
+    elseif  msg == "clock" or msg == "mode clock" then
         if  DB.horizonMode then
             DB.horizonMode = false
             UpdatePosition()
-            Print("> Clock (12h) mode enabled (Bottom=06h/18h, Left=09h/21h, Top=12h/00h, Right=15h/03h).")
-        else Print("> Clock (12h) mode already enabled (Bottom=06h/18h, Left=09h/21h, Top=12h/00h, Right=15h/03h).")
+            Print("> |cFF00FF00Clock (12h)|r mode enabled (Bottom=06h/18h, Left=09h/21h, Top=12h/00h, Right=15h/03h).")
+        else Print("> |cFF00FF00Clock (12h)|r mode already enabled (Bottom=06h/18h, Left=09h/21h, Top=12h/00h, Right=15h/03h).")
         end
-    elseif  msg == "horizon" then
+    elseif  msg == "horizon" or msg == "mode horizon" then
         if  DB.horizonMode then
-            Print("> Horizon (24h) mode already enabled (Left=06h (sunrise), Top=12h, Right=18h (sunset), Bottom=00h).")
+            Print("> |cffFFD100Horizon (24h)|r mode already enabled (Left=06h (sunrise), Top=12h, Right=18h (sunset), Bottom=00h).")
         else DB.horizonMode = true
              UpdatePosition()
-             Print("> Horizon (24h) mode enabled (Left=06h (sunrise), Top=12h, Right=18h (sunset), Bottom=00h).")
+             Print("> |cffFFD100Horizon (24h)|r mode enabled (Left=06h (sunrise), Top=12h, Right=18h (sunset), Bottom=00h).")
         end
 	elseif  msg == "info" or msg == "status" then
             local modeStr = DB.horizonMode and "Horizon (24h)" or "Clock (12h)"
             local timeStr = DB.serverTime and "Server Time" or "Local Time"
-            Print("~ ☼ SMM INFO ☼ ~")
-            Print("Active mode: " .. modeStr)
-            Print("Time source: " .. timeStr)
+            Print("|cffFFD100~ ☼ SMM INFO ☼ ~|r")
+            local modeColorCode = "cffFFD100" -- Default color
+				if	modeStr == "Clock (12h)" then
+					modeColorCode = "cFF00FF00" -- Green
+				elseif 	modeStr == "Horizon (24h)" then
+					modeColorCode = "cffFFD100" -- Yellow
+				end
+			local timeColorCode = "cffFFD100"
+				if	timeStr == "Server Time" then
+					timeColorCode = "cFF00FF00" -- Green
+				elseif timeStr == "Local Time" then
+					timeColorCode = "cffFFD100" -- Yellow
+				end	
+			Print("Active mode: |" .. modeColorCode .. modeStr .. "|r")
+		    Print("Time source: |" .. timeColorCode .. timeStr .. "|r")
     elseif  msg == "custom" then
-            Print("~ ☼ SMM CUSTOM COMMANDS ☼ ~")
-            Print("/smm custom radius 104 - radius size (default: 104)")
-            Print("/smm custom size 42 - icon size (default: 42)")
-            Print("/smm custom offset 0 - adjust icon position (default: 0)")
-			Print("/smm custom info - show current custom values")
-            Print("/smm custom reset - default custom settings")
+            Print("|cffFFD100~ ☼ SMM CUSTOM COMMANDS ☼ ~|r")
+            Print("/smm custom radius |cFF00FF00104|r - Radius size (default: 104)")
+            Print("/smm custom size |cFF00FF0042|r - Icon size (default: 42)")
+            Print("/smm custom offset |cFF00FF000|r - Adjust icon position (default: 0)")
+			Print("/smm custom info - Show current custom values")
+            Print("/smm custom reset - Default custom settings")
 	elseif  msg == "custom info" or msg == "custom status" or msg == "custom values" then
-            Print("~ ☼ SMM CUSTOM VALUES ☼ ~")
+            Print("|cffFFD100~ ☼ SMM CUSTOM VALUES ☼ ~|r")
             Print("Radius: " .. tostring(DB.radius))
             Print("Size (icon): " .. tostring(DB.size))
             Print("Offset: " .. tostring(DB.offset) .. " degrees")
@@ -307,7 +319,7 @@ local function Command(msg)
             UpdatePosition()
             Print("> Radius (50-180) = " .. DB.radius)
         else
-            Print("> Usage: /smm custom radius 104")
+            Print("> |cffFFD100Usage: /smm custom radius 104|r")
         end
     elseif msg:match("^custom%s+offset%s+") then
         local val = tonumber(msg:match("^custom%s+offset%s+([%-]?[%d%.]+)"))
@@ -316,7 +328,7 @@ local function Command(msg)
             UpdatePosition()
             Print("> Offset = " .. DB.offset .. " degrees")
         else
-            Print("> Usage: /smm custom offset 0")
+            Print("> |cffFFD100Usage: /smm custom offset 0|r")
         end
     elseif    msg:match("^custom%s+size%s+") then
         local val = tonumber(msg:match("^custom%s+size%s+([%d%.]+)"))
@@ -325,20 +337,21 @@ local function Command(msg)
             UpdatePosition()
             Print("> Size (20-80) = " .. DB.size)
         else
-            Print("> Usage: /smm custom size 42")
+            Print("> |cffFFD100Usage: /smm custom size 42|r")
         end
     else
-        Print("~ ☼ SMM COMMANDS ☼ ~")
-        Print("/smm server - server time (default)")
-        Print("/smm local - local time")
-        Print("/smm mode - {Clock (12h)} (default) | {Horizon (24h)}")
-		Print("/smm info - display current SMM settings")
-        Print("/smm custom - display custom commands")
-        Print("/smm on/off - activate/desactivate SMM")  
+        Print("|cffFFD100~ ☼ SMM COMMANDS ☼ ~|r")
+        Print("/smm server - |cFF00FF00Server|r time (default)")
+        Print("/smm local - |cffFFD100Local|r time")
+        Print("/smm mode - {|cFF00FF00Clock|r (12h)} (default) | {|cffFFD100Horizon|r (24h)}")
+		Print("/smm info - Display current SMM settings")
+        Print("/smm custom - Display custom commands")
+        Print("/smm on/off - SMM or Blizzard icon")
     end
 end
 
 SLASH_SunMoonMinimap1 = "/smm"
+SLASH_SunMoonMinimap2 = "/sunmoonminimap"
 SlashCmdList.SunMoonMinimap = Command
 
 local eventFrame = CreateFrame("Frame")

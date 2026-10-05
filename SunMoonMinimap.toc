@@ -1,9 +1,10 @@
 ## Interface: 16001
 ## Title: SunMoonMinimap
-## Notes: Moves the Sun/Moon icon around the minimap according to server/local time.
-## Author: AI
-## Version: 1.0.4
+## Notes: Moves the Sun/Moon icon around the minimap according to server/local time. /smm
+## Author: Hey0001, AI
+## Version: 1.0.5
 ## SavedVariables: SunMoonMinimapDB
 ## Category: Map & Minimap
+## IconTexture: Interface\Addons\SunMoonMinimap\Icons\smm_icon_tiny
 
 SunMoonMinimap.lua
