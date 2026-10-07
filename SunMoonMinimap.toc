@@ -1,10 +1,31 @@
 ## Interface: 16001
+
 ## Title: SunMoonMinimap
-## Notes: Moves the Sun/Moon icon around the minimap according to server/local time. /smm
+## Title-ruRU: SunMoonMinimap (Солнце и Луна на миникарте)
 ## Author: Hey0001, AI
-## Version: 1.0.5
-## SavedVariables: SunMoonMinimapDB
-## Category: Map & Minimap
+## Version: 1.0.9
+
+## Notes: Moves the Sun/Moon icon around the minimap according to server/local time. /smm
+## Notes-deDE: Verschiebt das Sonnen-/Mondsymbol entsprechend der Server- oder Ortszeit um die Minikarte. /smm
+## Notes-esES: Mueve el icono del Sol/Luna alrededor del minimapa según la hora del servidor/local. /smm
+## Notes-esMX: Mueve el ícono del Sol/Luna alrededor del minimapa según la hora del servidor/local. /smm
+## Notes-ptBR: Move o ícone do Sol/Lua ao redor do minimapa de acordo com a hora do servidor/local. /smm
+## Notes-frFR: Déplace l'icône Soleil/Lune autour de la minicarte en fonction de l'heure du serveur ou locale. /smm
+
+## Category: User Interface
+## Category-deDE: Benutzerinterface
+## Category-esES: Interfaz de usuario
+## Category-esMX: Interfaz de usuario
+## Category-frFR: Interface utilisateur
+## Category-itIT: Interfaccia utente
+## Category-koKR: 사용자 인터페이스
+## Category-ptBR: Interface do usuário
+## Category-ruRU: Интерфейс пользователя
+## Category-zhCN: 用户界面
+## Category-zhTW: 使用者介面
+
 ## IconTexture: Interface\Addons\SunMoonMinimap\Icons\smm_icon_tiny
+
+## SavedVariables: SunMoonMinimapDB
 
 SunMoonMinimap.lua

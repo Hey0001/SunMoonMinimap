@@ -1,5 +1,5 @@
 -- Sun & Moon Minimap
--- Version 1.0.5
+-- Version 1.0.9
 
 local ADDON_NAME = ...
 local DB
@@ -62,39 +62,31 @@ end
 local function UpdatePosition()
     if not frame or not Minimap or not DB.enabled then return end
 
+    if frame:GetParent() ~= Minimap then
+        frame:SetParent(Minimap)
+    end
+
     local w = Minimap:GetWidth() or 198
     local h = Minimap:GetHeight() or 198
     local scale = math.max(1, math.min(w, h) / 198)
 
     local radius = (DB.radius or DEFAULTS.radius) * scale
-
     local hourVal = GetDisplayTime()
     local angle = 0
 
     if DB.horizonMode then
-        -- 1. Basic linear calculation (0 to 2pi)
         local baseAngle = ((hourVal - 12) / 24) * (2 * math.pi)
-        
-        -- 2. Asymmetric non-linear correction for visual balance
-        -- We differentiate the upper half (near 12h) and lower half (near 00h)
         local correction = 0
         local sinVal = math.sin(baseAngle)
         local cosVal = math.cos(baseAngle)
         
-        -- If we are in the upper hemisphere (cosVal > 0, meaning between 18h and 06h via 12h)
         if cosVal > 0 then
-            -- Push intermediate hours away from 12h by lowering the flanks (09h / 15h)
-            local upperFactor = 0.20 -- Increase this value if hours between 06h-12h and 12h-18h feel too close to 12h
-            correction = upperFactor * sinVal * cosVal
+            correction = 0.20 * sinVal * cosVal
         else
-            -- In the lower hemisphere (cosVal < 0, between 06h and 18h via 00h)
-			local lowerFactor = -0.00 -- Decrease this value (higher in the negatives) to be closer to 00h
-            correction = lowerFactor * sinVal * cosVal
+            correction = -0.00 * sinVal * cosVal
         end
-        
         angle = baseAngle + correction
     else
-        -- Classic 12h Clock mode
         local clockHour = hourVal % 12
         angle = (clockHour / 12) * (2 * math.pi)
     end
@@ -107,8 +99,11 @@ local function UpdatePosition()
     frame:ClearAllPoints()
     frame:SetPoint("CENTER", Minimap, "CENTER", x, y)
     frame:SetScale(scale * ((DB.size or DEFAULTS.size) / 42))
+    
+    frame:SetFrameStrata("MEDIUM")
+    frame:SetFrameLevel((Minimap:GetFrameLevel() or 1) + 1)
+    
     frame:Show()
-
     Paint()
 end
 
@@ -156,27 +151,37 @@ local function HideBlizzard()
     end
 
     if  _G.GameTimeFrame then
-		_G.GameTimeFrame:Hide()
-		_G.GameTimeFrame:UnregisterAllEvents()
-		_G.GameTimeFrame:EnableMouse(false)
-		_G.GameTimeFrame:SetAlpha(0)
-		_G.GameTimeFrame.Show = function() end
+        _G.GameTimeFrame:Hide()
+        _G.GameTimeFrame:UnregisterAllEvents()
+        _G.GameTimeFrame:EnableMouse(false)
+        _G.GameTimeFrame:SetAlpha(0)
+        _G.GameTimeFrame.Show = function() end
     end
 end
 
 local function CreateIndicator()
     if frame or not Minimap then return end
 
-    frame = CreateFrame("Button", "SunMoonMinimapFrame", Minimap)
+    frame = CreateFrame("Frame", "SMM_IndicatorFrame", Minimap)
     frame:SetSize(DEFAULTS.size, DEFAULTS.size)
     frame:EnableMouse(true)
-    frame:SetFrameLevel(Minimap:GetFrameLevel() + 10)
+    
+    frame:SetHitRectInsets(4, 4, 4, 4) 
 
-    rim = frame:CreateTexture(nil, "OVERLAY", nil, 1)
+    -- Protections anti-conflit pour MinimapButtonBag (MBB)
+    frame.ignore = true
+    frame.ignoreMinimapButton = true
+    frame.mbbIgnore = true
+    frame.isMinimapButton = false
+
+    frame:SetFrameStrata("MEDIUM")
+    frame:SetFrameLevel((Minimap:GetFrameLevel() or 1) + 1)
+
+    rim = frame:CreateTexture(nil, "OVERLAY", nil, 2)
     rim:SetAllPoints()
     rim:SetAtlas("UI-HUD-Minimap-Frame-Cycle", true)
 
-    disc = frame:CreateTexture(nil, "ARTWORK", nil, 1)
+    disc = frame:CreateTexture(nil, "OVERLAY", nil, 1)
     disc:SetPoint("CENTER")
     disc:SetSize(33, 33)
 
@@ -198,7 +203,7 @@ local function CreateIndicator()
         GameTooltip:Hide()
     end)
 
-    frame:SetScript("OnClick", function(_, button)
+    frame:SetScript("OnMouseUp", function(_, button)
         if button == "LeftButton" and ToggleCalendar then
             ToggleCalendar()
         end
@@ -244,17 +249,21 @@ local function Command(msg)
             if frame then frame:Hide() end
             RestoreBlizzard()
             Print("> |cff00FFFFBlizzard|r's native indicator enabled")
+	elseif	msg == "server/local" then
+			Print("> |cffFF8C00Usage: '/smm server' or '/smm local'|r")
+	elseif	msg == "clock/horizon" then
+			Print("> |cffFF8C00Usage: '/smm clock' or '/smm horizon'|r")
     elseif  msg == "server" or msg == "serv" or msg == "server time" or msg == "serv time" then
-			DB.serverTime = true
-			UpdatePosition()
-			Print("> Using |cFF00FF00server|r time")
-    elseif  msg == "local" or msg == "local time" then
+            DB.serverTime = true
+            UpdatePosition()
+            Print("> Using |cFF00FF00Server|r time")
+	elseif  msg == "local" or msg == "local time" then
             DB.serverTime = false
             UpdatePosition()
-            Print("> Using |cffFFD100local|r time")
+            Print("> Using |cffFFD100Local|r time")
     elseif  msg == "mode" then
         if  DB.horizonMode then
-			DB.horizonMode = false
+            DB.horizonMode = false
             UpdatePosition()
             Print("> |cFF00FF00Clock (12h)|r mode enabled (Bottom=06h/18h, Left=09h/21h, Top=12h/00h, Right=15h/03h).")
         else
@@ -276,32 +285,32 @@ local function Command(msg)
              UpdatePosition()
              Print("> |cffFFD100Horizon (24h)|r mode enabled (Left=06h (sunrise), Top=12h, Right=18h (sunset), Bottom=00h).")
         end
-	elseif  msg == "info" or msg == "status" then
+    elseif  msg == "info" or msg == "status" then
             local modeStr = DB.horizonMode and "Horizon (24h)" or "Clock (12h)"
             local timeStr = DB.serverTime and "Server Time" or "Local Time"
             Print("|cffFFD100~ ☼ SMM INFO ☼ ~|r")
-            local modeColorCode = "cffFFD100" -- Default color
-				if	modeStr == "Clock (12h)" then
-					modeColorCode = "cFF00FF00" -- Green
-				elseif 	modeStr == "Horizon (24h)" then
-					modeColorCode = "cffFFD100" -- Yellow
-				end
-			local timeColorCode = "cffFFD100"
-				if	timeStr == "Server Time" then
-					timeColorCode = "cFF00FF00" -- Green
-				elseif timeStr == "Local Time" then
-					timeColorCode = "cffFFD100" -- Yellow
-				end	
-			Print("Active mode: |" .. modeColorCode .. modeStr .. "|r")
-		    Print("Time source: |" .. timeColorCode .. timeStr .. "|r")
+            local modeColorCode = "cffFFD100"
+                if    modeStr == "Clock (12h)" then
+                    modeColorCode = "cFF00FF00"
+                elseif     modeStr == "Horizon (24h)" then
+                    modeColorCode = "cffFFD100"
+                end
+            local timeColorCode = "cffFFD100"
+                if    timeStr == "Server Time" then
+                    timeColorCode = "cFF00FF00"
+                elseif timeStr == "Local Time" then
+                    timeColorCode = "cffFFD100"
+                end    
+            Print("Active mode: |" .. modeColorCode .. modeStr .. "|r")
+            Print("Time source: |" .. timeColorCode .. timeStr .. "|r")
     elseif  msg == "custom" then
             Print("|cffFFD100~ ☼ SMM CUSTOM COMMANDS ☼ ~|r")
             Print("/smm custom radius |cFF00FF00104|r - Radius size (default: 104)")
             Print("/smm custom size |cFF00FF0042|r - Icon size (default: 42)")
             Print("/smm custom offset |cFF00FF000|r - Adjust icon position (default: 0)")
-			Print("/smm custom info - Show current custom values")
+            Print("/smm custom info - Show current custom values")
             Print("/smm custom reset - Default custom settings")
-	elseif  msg == "custom info" or msg == "custom status" or msg == "custom values" then
+    elseif  msg == "custom info" or msg == "custom status" or msg == "custom values" then
             Print("|cffFFD100~ ☼ SMM CUSTOM VALUES ☼ ~|r")
             Print("Radius: " .. tostring(DB.radius))
             Print("Size (icon): " .. tostring(DB.size))
@@ -319,7 +328,7 @@ local function Command(msg)
             UpdatePosition()
             Print("> Radius (50-180) = " .. DB.radius)
         else
-            Print("> |cffFFD100Usage: /smm custom radius 104|r")
+            Print("> |cffFF8C00Usage: '/smm custom radius 104'|r")
         end
     elseif msg:match("^custom%s+offset%s+") then
         local val = tonumber(msg:match("^custom%s+offset%s+([%-]?[%d%.]+)"))
@@ -328,7 +337,7 @@ local function Command(msg)
             UpdatePosition()
             Print("> Offset = " .. DB.offset .. " degrees")
         else
-            Print("> |cffFFD100Usage: /smm custom offset 0|r")
+            Print("> |cffFF8C00Usage: '/smm custom offset 0'|r")
         end
     elseif    msg:match("^custom%s+size%s+") then
         local val = tonumber(msg:match("^custom%s+size%s+([%d%.]+)"))
@@ -337,16 +346,15 @@ local function Command(msg)
             UpdatePosition()
             Print("> Size (20-80) = " .. DB.size)
         else
-            Print("> |cffFFD100Usage: /smm custom size 42|r")
+            Print("> |cffFF8C00Usage: '/smm custom size 42'|r")
         end
     else
         Print("|cffFFD100~ ☼ SMM COMMANDS ☼ ~|r")
-        Print("/smm server - |cFF00FF00Server|r time (default)")
-        Print("/smm local - |cffFFD100Local|r time")
-        Print("/smm mode - {|cFF00FF00Clock|r (12h)} (default) | {|cffFFD100Horizon|r (24h)}")
-		Print("/smm info - Display current SMM settings")
+		Print("/smm clock/horizon - {|cFF00FF00Clock|r (12h)} (default) or {|cffFFD100Horizon|r (24h)}")
+        Print("/smm server/local - |cFF00FF00Server|r time (default) or |cffFFD100Local|r time")
+        Print("/smm info - Display current SMM settings")
         Print("/smm custom - Display custom commands")
-        Print("/smm on/off - SMM or Blizzard icon")
+        Print("/smm on/off - Toggle to |cffFFD100SMM|r or |cff00FFFFBlizzard|r icon")
     end
 end
 
